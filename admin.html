@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThunderGuard — Admin Control Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Archivo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --storm: #0A0F1E;
+  --panel: #111A31;
+  --panel-2: #0D1426;
+  --panel-3: #161F38;
+  --line: rgba(154,167,199,.16);
+  --bolt: #FFD84D;
+  --bolt-dim: rgba(255,216,77,.12);
+  --danger: #FF5A5A;
+  --danger-dim: rgba(255,90,90,.12);
+  --ok: #4ADE80;
+  --ok-dim: rgba(74,222,128,.12);
+  --ink: #EAF0FF;
+  --mist: #9AA7C7;
+  --mist-2: #6B7A9E;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --sans: 'Archivo', system-ui, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--storm); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+/* --- LOGIN SCREEN --- */
+.login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(600px 400px at 50% 40%, rgba(255,216,77,.04), transparent 60%);
+}
+.login-box {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  padding: 48px 40px; width: 100%; max-width: 420px; text-align: center;
+}
+.login-box .logo { font-family: var(--sans); font-weight: 900; font-size: 20px; letter-spacing: .02em; margin-bottom: 8px; }
+.login-box .logo .zap { color: var(--bolt); }
+.login-box .sub { color: var(--mist); font-size: 14px; margin-bottom: 32px; }
+.login-box label { display: block; text-align: left; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--mist); margin-bottom: 8px; }
+.login-box input {
+  width: 100%; padding: 14px 16px; background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--ink); font-family: var(--mono); font-size: 14px; outline: none;
+}
+.login-box input:focus { border-color: var(--bolt); }
+.login-box .url-row { margin-bottom: 16px; }
+.login-box button {
+  margin-top: 24px; width: 100%; padding: 14px; background: var(--bolt); color: #141200;
+  font-family: var(--mono); font-weight: 600; font-size: 14px; border: none; border-radius: 8px;
+  cursor: pointer; transition: transform .12s;
+}
+.login-box button:hover { transform: translateY(-1px); }
+.login-error { color: var(--danger); font-size: 13px; margin-top: 12px; font-family: var(--mono); }
+
+/* --- DASHBOARD --- */
+.dashboard { display: none; }
+.dashboard.active { display: block; }
+.login-screen.hidden { display: none; }
+
+/* top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: rgba(10,15,30,.88);
+  backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+  padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between;
+}
+.topbar .logo { font-weight: 900; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.topbar .zap { color: var(--bolt); }
+.topbar .tag { font-family: var(--mono); font-size: 11px; background: var(--bolt-dim); color: var(--bolt); padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255,216,77,.3); }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar .status { font-family: var(--mono); font-size: 12px; color: var(--ok); display: flex; align-items: center; gap: 6px; }
+.topbar .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px rgba(74,222,128,.7); }
+.btn-logout { font-family: var(--mono); font-size: 12px; color: var(--mist); background: none; border: 1px solid var(--line); padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+.btn-logout:hover { color: var(--ink); border-color: var(--mist); }
+
+/* layout */
+.main { padding: 28px; max-width: 1280px; margin: 0 auto; }
+
+/* stat cards */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px;
+}
+.stat-card .label { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mist); margin-bottom: 8px; }
+.stat-card .value { font-size: 32px; font-weight: 800; font-family: var(--sans); }
+.stat-card .value.danger { color: var(--danger); }
+.stat-card .value.ok { color: var(--ok); }
+.stat-card .value.bolt { color: var(--bolt); }
+.stat-card .sub { font-family: var(--mono); font-size: 11.5px; color: var(--mist); margin-top: 4px; }
+
+/* panels */
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+.panel-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; border-bottom: 1px solid var(--line);
+}
+.panel-title { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.panel-body { padding: 0; max-height: 420px; overflow-y: auto; }
+
+/* event rows */
+.event-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+  border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12.5px;
+}
+.event-row:last-child { border-bottom: none; }
+.event-time { color: var(--mist-2); white-space: nowrap; min-width: 72px; }
+.event-type { min-width: 160px; }
+.badge-block { background: var(--danger-dim); color: var(--danger); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge-allow { background: var(--ok-dim); color: var(--ok); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.event-reason { color: var(--mist); font-size: 11.5px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-confidence { color: var(--mist-2); font-size: 11px; }
+
+/* client rows */
+.client-row {
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+  border-bottom: 1px solid var(--line); font-size: 14px;
+}
+.client-row:last-child { border-bottom: none; }
+.client-name { font-weight: 600; min-width: 140px; }
+.client-plan { font-family: var(--mono); font-size: 12px; color: var(--bolt); background: var(--bolt-dim); padding: 2px 10px; border-radius: 4px; text-transform: uppercase; }
+.client-id { font-family: var(--mono); font-size: 11px; color: var(--mist-2); flex: 1; }
+
+/* new client form */
+.new-client-section {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px;
+  margin-bottom: 24px;
+}
+.new-client-section h3 { font-size: 16px; margin-bottom: 16px; }
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--mist); }
+.form-group input, .form-group select {
+  padding: 10px 14px; background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--ink); font-family: var(--mono); font-size: 13px; outline: none; min-width: 180px;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--bolt); }
+.form-group select option { background: var(--panel-2); }
+.btn-create {
+  padding: 10px 20px; background: var(--bolt); color: #141200; font-family: var(--mono);
+  font-weight: 600; font-size: 13px; border: none; border-radius: 8px; cursor: pointer;
+  height: fit-content;
+}
+.btn-create:hover { transform: translateY(-1px); }
+.btn-create:disabled { opacity: .5; cursor: not-allowed; }
+
+/* key reveal */
+.key-reveal {
+  margin-top: 16px; padding: 16px; background: var(--ok-dim); border: 1px solid var(--ok);
+  border-radius: 8px; font-family: var(--mono); font-size: 13px; display: none;
+}
+.key-reveal.visible { display: block; }
+.key-reveal .key-label { color: var(--ok); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.key-reveal .key-value { word-break: break-all; color: var(--ink); user-select: all; }
+.key-reveal .key-warning { color: var(--bolt); font-size: 11.5px; margin-top: 8px; }
+.btn-copy { margin-top: 8px; padding: 6px 14px; background: var(--ok); color: #0a1a0a; font-family: var(--mono); font-size: 12px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; }
+
+/* refresh indicator */
+.refresh-bar { font-family: var(--mono); font-size: 11px; color: var(--mist-2); text-align: right; margin-bottom: 16px; }
+
+/* full width panel */
+.panel-full { grid-column: 1 / -1; }
+
+/* empty state */
+.empty { padding: 40px 20px; text-align: center; color: var(--mist-2); font-family: var(--mono); font-size: 13px; }
+
+/* responsive */
+@media (max-width: 900px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .panels { grid-template-columns: 1fr; }
+  .form-row { flex-direction: column; }
+  .main { padding: 16px; }
+}
+@media (max-width: 500px) {
+  .stats-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="logo"><span class="zap">⚡</span> THUNDERGUARD</div>
+    <div class="sub">Admin Control Panel</div>
+    <div class="url-row">
+      <label>Proxy URL</label>
+      <input type="text" id="inputUrl" value="https://thunderguard-proxy-production.up.railway.app" placeholder="https://your-proxy.up.railway.app">
+    </div>
+    <div>
+      <label>Admin Key</label>
+      <input type="password" id="inputKey" placeholder="tg_admin_..." autofocus>
+    </div>
+    <button onclick="doLogin()">Connect to ThunderGuard</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="logo"><span class="zap">⚡</span> THUNDERGUARD</div>
+      <span class="tag">ADMIN</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status"><span class="dot"></span> Proxy online</div>
+      <button class="btn-logout" onclick="doLogout()">Disconnect</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="refresh-bar">Last updated: <span id="lastUpdate">—</span> · Auto-refresh every 30s</div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="label">Requests inspected (24h)</div>
+        <div class="value bolt" id="statTotal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Attacks blocked (24h)</div>
+        <div class="value danger" id="statBlocked">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Block rate</div>
+        <div class="value" id="statRate">—</div>
+        <div class="sub" id="statRateSub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Avg latency</div>
+        <div class="value ok" id="statLatency">—</div>
+        <div class="sub">detection overhead</div>
+      </div>
+    </div>
+
+    <!-- NEW CLIENT -->
+    <div class="new-client-section">
+      <h3>⚡ Generate API key for new client</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client name</label>
+          <input type="text" id="newName" placeholder="Acme AI">
+        </div>
+        <div class="form-group">
+          <label>Plan</label>
+          <select id="newPlan">
+            <option value="starter">Starter — $499/mo</option>
+            <option value="growth">Growth — $1,490/mo</option>
+            <option value="enterprise">Enterprise — Custom</option>
+            <option value="audit">Red Team Audit — $2,500</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fail mode</label>
+          <select id="newFailOpen">
+            <option value="true">Fail-open (recommended)</option>
+            <option value="false">Fail-closed</option>
+          </select>
+        </div>
+        <button class="btn-create" id="btnCreate" onclick="createClient()">Generate key</button>
+      </div>
+      <div class="key-reveal" id="keyReveal">
+        <div class="key-label">New API key generated — copy it now</div>
+        <div class="key-value" id="keyValue"></div>
+        <div class="key-warning">⚠ This key is shown only once. It cannot be recovered.</div>
+        <button class="btn-copy" onclick="copyKey()">Copy key</button>
+      </div>
+    </div>
+
+    <!-- PANELS -->
+    <div class="panels">
+      <!-- EVENTS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent events (24h)</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--mist-2)" id="eventCount"></span>
+        </div>
+        <div class="panel-body" id="eventsBody">
+          <div class="empty">Connecting...</div>
+        </div>
+      </div>
+
+      <!-- CLIENTS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Clients</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--mist-2)" id="clientCount"></span>
+        </div>
+        <div class="panel-body" id="clientsBody">
+          <div class="empty">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let PROXY_URL = '';
+let ADMIN_KEY = '';
+let refreshInterval = null;
+
+// --- LOGIN / LOGOUT ---
+async function doLogin() {
+  const url = document.getElementById('inputUrl').value.replace(/\/+$/, '');
+  const key = document.getElementById('inputKey').value.trim();
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+
+  if (!url || !key) { errEl.textContent = 'Both fields are required.'; return; }
+
+  try {
+    const res = await fetch(url + '/stats', { headers: { 'x-admin-key': key } });
+    if (res.status === 401) { errEl.textContent = 'Invalid admin key.'; return; }
+    if (!res.ok) { errEl.textContent = 'Could not connect (HTTP ' + res.status + ')'; return; }
+    await res.json();
+  } catch (e) {
+    errEl.textContent = 'Cannot reach proxy. Check URL.';
+    return;
+  }
+
+  PROXY_URL = url;
+  ADMIN_KEY = key;
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('active');
+  fetchAll();
+  refreshInterval = setInterval(fetchAll, 30000);
+}
+
+function doLogout() {
+  PROXY_URL = '';
+  ADMIN_KEY = '';
+  clearInterval(refreshInterval);
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('dashboard').classList.remove('active');
+  document.getElementById('inputKey').value = '';
+}
+
+// --- FETCH DATA ---
+async function fetchAll() {
+  try {
+    const res = await fetch(PROXY_URL + '/stats', { headers: { 'x-admin-key': ADMIN_KEY } });
+    if (!res.ok) return;
+    const data = await res.json();
+    renderStats(data);
+    renderEvents(data.recent || []);
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    console.error('fetch error', e);
+  }
+
+  // fetch clients
+  try {
+    const res = await fetch(PROXY_URL + '/stats', { headers: { 'x-admin-key': ADMIN_KEY } });
+    if (res.ok) {
+      const data = await res.json();
+      // extract unique clients from events
+      const clientMap = new Map();
+      (data.recent || []).forEach(e => {
+        if (e.client_id && !clientMap.has(e.client_id)) {
+          clientMap.set(e.client_id, { id: e.client_id });
+        }
+      });
+      renderClients(Array.from(clientMap.values()));
+    }
+  } catch(e) {}
+}
+
+function renderStats(data) {
+  document.getElementById('statTotal').textContent = (data.total_requests || 0).toLocaleString();
+  document.getElementById('statBlocked').textContent = (data.blocked || 0).toLocaleString();
+  const rate = data.block_rate || 0;
+  document.getElementById('statRate').textContent = rate + '%';
+  document.getElementById('statRate').className = 'value ' + (rate > 20 ? 'danger' : rate > 5 ? 'bolt' : 'ok');
+  document.getElementById('statRateSub').textContent = rate > 20 ? 'elevated threat level' : rate > 5 ? 'moderate activity' : 'normal activity';
+  document.getElementById('statLatency').textContent = (data.avg_latency_ms || 0) + 'ms';
+}
+
+function renderEvents(events) {
+  const body = document.getElementById('eventsBody');
+  document.getElementById('eventCount').textContent = events.length + ' events';
+  if (!events.length) { body.innerHTML = '<div class="empty">No events in the last 24 hours.</div>'; return; }
+
+  body.innerHTML = events.map(e => {
+    const time = new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const isBlock = e.verdict === 'block';
+    const threats = (e.threats || []).join(', ') || (isBlock ? 'unknown' : 'clean');
+    return `<div class="event-row">
+      <span class="event-time">${time}</span>
+      <span class="event-type">${threats.toUpperCase()}</span>
+      <span class="${isBlock ? 'badge-block' : 'badge-allow'}">${isBlock ? 'BLOCKED' : 'PASSED'}</span>
+      <span class="event-confidence">${e.confidence || ''}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderClients(clients) {
+  const body = document.getElementById('clientsBody');
+  document.getElementById('clientCount').textContent = clients.length + ' clients';
+  if (!clients.length) { body.innerHTML = '<div class="empty">No clients yet. Generate your first API key above.</div>'; return; }
+
+  body.innerHTML = clients.map(c => {
+    const shortId = (c.id || '').toString().slice(0, 8);
+    return `<div class="client-row">
+      <span class="client-name">${c.name || 'Client'}</span>
+      <span class="client-plan">${c.plan || 'starter'}</span>
+      <span class="client-id">ID: ${shortId}…</span>
+    </div>`;
+  }).join('');
+}
+
+// --- CREATE CLIENT ---
+async function createClient() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { alert('Enter a client name.'); return; }
+
+  const plan = document.getElementById('newPlan').value;
+  const failOpen = document.getElementById('newFailOpen').value === 'true';
+  const btn = document.getElementById('btnCreate');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  try {
+    const res = await fetch(PROXY_URL + '/admin/keys', {
+      method: 'POST',
+      headers: { 'x-admin-key': ADMIN_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({ client_name: name, plan, fail_open: failOpen }),
+    });
+    const data = await res.json();
+
+    if (data.api_key) {
+      document.getElementById('keyValue').textContent = data.api_key;
+      document.getElementById('keyReveal').classList.add('visible');
+      document.getElementById('newName').value = '';
+      fetchAll();
+    } else {
+      alert('Error: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    alert('Request failed: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Generate key';
+}
+
+function copyKey() {
+  const key = document.getElementById('keyValue').textContent;
+  navigator.clipboard.writeText(key).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy key', 2000);
+  });
+}
+
+// enter key on login
+document.getElementById('inputKey').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
